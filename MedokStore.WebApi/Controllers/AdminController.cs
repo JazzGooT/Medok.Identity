@@ -1,4 +1,5 @@
-﻿using MedokStore.Application.Users.Queries.GetUserListByRole;
+﻿using MedokStore.Application.Users.Command.DeleteClient;
+using MedokStore.Application.Users.Queries.GetUserListByRole;
 using MedokStore.Domain.Entity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,6 +17,16 @@ namespace MedokStore.Identity.Controllers
             };
             var result = await Mediator.Send(query);
             return result;
+        }
+        [HttpDelete("Delete")]
+        public async Task<IActionResult> DeleteClient(Guid Id)
+        {
+            var command = new DeleteClientCommand
+            {
+                Id = Id,
+            };
+            await Mediator.Send(command);
+            return Ok("Client deleted!");
         }
     }
 }

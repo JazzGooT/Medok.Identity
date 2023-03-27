@@ -1,33 +1,46 @@
-﻿using MediatR;
+﻿using AutoMapper;
+using MediatR;
+using MedokStore.Application.Common.Helpers;
 using MedokStore.Domain.Entity;
 using Microsoft.AspNetCore.Identity;
 
 namespace MedokStore.Application.Users.Command.Register
 {
-    public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, IdentityResult>
+    public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, CreateUserVm>
     {
-
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly RoleManager<ApplicationRole> _roleManager;
-        private readonly SignInManager<ApplicationUser> _signInMenager;
-        public CreateUserCommandHandler(UserManager<ApplicationUser> userManager, RoleManager<ApplicationRole> roleManager, SignInManager<ApplicationUser> signInMenager)
-            => (_userManager, _roleManager, _signInMenager) = (userManager, roleManager, signInMenager);
-        public async Task<IdentityResult> Handle(CreateUserCommand request, CancellationToken cancellationToken)
+        private readonly IMapper _mapper;
+
+        public CreateUserCommandHandler(UserManager<ApplicationUser> userManager, IMapper mapper)
+            => (_userManager, _mapper) = (userManager, mapper);
+        public async Task<CreateUserVm> Handle(CreateUserCommand request, CancellationToken cancellationToken)
         {
-            var user = new ApplicationUser
+            var user = _mapper.Map<ApplicationUser>(request);
+            var resultCreate = await _userManager.CreateAsync(user, request.Password);
+            if (resultCreate.Succeeded)
             {
-                UserName = request.UserName,
-                LastName = request.LastName,
-                Email = request.Email,
-                PasswordHash = request.Password,
-                EmailConfirmed = false,
-
-            };
-            var result = await _userManager.CreateAsync(user);
-            await _userManager.AddToRoleAsync(user, "Client");
-            await _userManager.UpdateAsync(user);
-
-            return result;
+                await _userManager.AddToRoleAsync(user, "Client");
+                await _userManager.UpdateAsync(user);
+                var token = TokenManager.GenerateToken(user, "Client");
+                var result = new CreateUserVm
+                {
+                    Result = resultCreate.ToString(),
+                    AccessToken = token.Token,
+                    Expires = token.Expires,
+                };
+                return result;
+            }
+            else
+            {
+                var result = new CreateUserVm
+                {
+                    Result = resultCreate.ToString(),
+                    AccessToken = null,
+                    Expires = null
+                };
+                return result;
+            }
         }
     }
+
 }

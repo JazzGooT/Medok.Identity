@@ -20,7 +20,7 @@ namespace MedokStore.Identity.Middleware
                 await HanleExeptionAsync(context, exeption);
             }
         }
-        private Task HanleExeptionAsync(HttpContext context, Exception exeption)
+        private static Task HanleExeptionAsync(HttpContext context, Exception exeption)
         {
             var code = HttpStatusCode.InternalServerError;
             var result = string.Empty;

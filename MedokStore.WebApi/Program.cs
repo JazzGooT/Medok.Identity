@@ -9,7 +9,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
+using System.Security.Claims;
 using System.Text;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,7 +20,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-#region NewAdd
+
 builder.Services.AddSwaggerGen(c =>
     {
         c.SwaggerDoc("v1", new OpenApiInfo
@@ -35,6 +37,7 @@ builder.Services.AddSwaggerGen(c =>
             In = ParameterLocation.Header,
             Description = "Here enter JWT token format: Bearer[token]"
         });
+
         c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -50,44 +53,83 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
     });
-#endregion
 
 builder.Services.AddAutoMapper(config =>
 {
     config.AddProfile(new AssemblyMappingProfile(Assembly.GetExecutingAssembly()));
     config.AddProfile(new AssemblyMappingProfile(typeof(IMedokStoreDbContext).Assembly));
 });
+
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>()
                .AddEntityFrameworkStores<MedokStoreDbContext>()
                .AddDefaultTokenProviders();
+builder.Services.Configure<IdentityOptions>(options =>
+{
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireUppercase = false;
+});
+
 builder.Services.AddApplication();
+
 builder.Services.AddPersistence(builder.Configuration);
-builder.Services.AddCors();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAnyOrigin", builder =>
+    {
+        builder.AllowAnyOrigin()
+               .AllowAnyHeader()
+               .AllowAnyMethod();
+    });
+});
 
-
-#region NewAdd
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(o =>
-{
-    o.TokenValidationParameters = new TokenValidationParameters
+})
+    .AddJwtBearer(o =>
     {
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey
-            (Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ClockSkew = TimeSpan.Zero
-    };
+        o.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey
+                (Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    })
+    .AddFacebook(config =>
+    {
+        config.AppId = builder.Configuration["Facebook:AppId"];
+        config.AppSecret = builder.Configuration["Facebook:AppSecret"];
+        config.SaveTokens = true;
+    });
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(builder.Configuration["Roles:Client"], policyBuilder =>
+    {
+        policyBuilder.RequireAssertion(x => x.User.HasClaim(ClaimTypes.Role, builder.Configuration["Roles:Client"])
+                                    || x.User.HasClaim(ClaimTypes.Role, builder.Configuration["Roles:Admin"])
+                                    || x.User.HasClaim(ClaimTypes.Role, builder.Configuration["Roles:SuperAdmin"]));
+    });
+    options.AddPolicy(builder.Configuration["Roles:Admin"], policyBuilder =>
+    {
+        policyBuilder.RequireAssertion(x => x.User.HasClaim(ClaimTypes.Role, builder.Configuration["Roles:Admin"])
+                                    || x.User.HasClaim(ClaimTypes.Role, builder.Configuration["Roles:SuperAdmin"]));
+    });
+    options.AddPolicy(builder.Configuration["Roles:SuperAdmin"], policyBuilder =>
+    {
+        policyBuilder.RequireAssertion(x => x.User.HasClaim(ClaimTypes.Role, builder.Configuration["Roles:SuperAdmin"]));
+    });
 });
-#endregion
+
 
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())
@@ -98,7 +140,7 @@ using (var scope = app.Services.CreateScope())
         var context = serviceProvider.GetRequiredService<MedokStoreDbContext>();
         DbInitializer.Initializer(context);
     }
-    catch (Exception exception) { }
+    catch (Exception) { }
 }
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

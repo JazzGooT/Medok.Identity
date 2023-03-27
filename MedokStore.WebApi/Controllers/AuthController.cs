@@ -11,31 +11,20 @@ namespace MedokStore.Identity.Controllers
     {
         private readonly IMapper _mapper;
         public AuthController(IMapper mapper) => _mapper = mapper;
+
         [HttpPost("Register")]
-        public async Task<IActionResult> Register([FromQuery] CreateUserDto createUserDto)
+        public async Task<IActionResult> Register([FromQuery] RegisterDto createUserDto)
         {
-            var command = new CreateUserCommand
-            {
-                UserName = createUserDto.UserName,
-                LastName = createUserDto.LastName,
-                Email = createUserDto.Email,
-                Password = createUserDto.Password,
-            };
+            var command = _mapper.Map<CreateUserCommand>(createUserDto);
             var result = await Mediator.Send(command);
-            if (result.Succeeded) return Ok("Succeeded");
-            return BadRequest(result.Errors);
+            return Ok(result);
         }
         [HttpPost("Login")]
-        public async Task<IActionResult> Login([FromQuery] LoginUserDto createUserDto)
+        public async Task<IActionResult> Login([FromQuery] LoginDto loginUserDto)
         {
-            var command = new LoginUserCommand
-            {
-                Email = createUserDto.Email,
-                Password = createUserDto.Password,
-            };
-            await Mediator.Send(command);
-            return Ok("Login");
+            var command = _mapper.Map<LoginUserCommand>(loginUserDto);
+            var result = await Mediator.Send(command);
+            return Ok(result);
         }
-
     }
 }

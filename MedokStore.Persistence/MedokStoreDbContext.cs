@@ -14,6 +14,7 @@ namespace MedokStore.Persistence
         protected override void OnModelCreating(ModelBuilder builder)
         {
             builder.ApplyConfiguration(new ApplicationUserConfigurations());
+            builder.ApplyConfiguration(new ApplicationRoleConfigurations());
             base.OnModelCreating(builder);
         }
     }
