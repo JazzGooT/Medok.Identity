@@ -1,10 +1,12 @@
 ﻿using MedokStore.Application.Users.Command.DeleteClient;
 using MedokStore.Application.Users.Queries.GetUserListByRole;
 using MedokStore.Domain.Entity;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MedokStore.Identity.Controllers
 {
+    [Authorize(Policy = "Admin")]
     [Route("/[controller]")]
     public class AdminController : BaseController
     {

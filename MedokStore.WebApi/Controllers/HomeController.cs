@@ -1,5 +1,4 @@
 ﻿using MedokStore.Domain.Entity;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,8 +9,6 @@ namespace MedokStore.Identity.Controllers
     {
         private readonly RoleManager<ApplicationRole> _roleManager;
         private readonly UserManager<ApplicationUser> _userManager;
-
-
         public HomeController(RoleManager<ApplicationRole> roleManager, UserManager<ApplicationUser> userManager)
             => (_roleManager, _userManager) = (roleManager, userManager);
 
@@ -63,25 +60,5 @@ namespace MedokStore.Identity.Controllers
             await _roleManager.CreateAsync(role);
             return Ok("Roles created!");
         }
-
-        [Authorize(Policy = "Client")]
-        [HttpPost("ClientAuth")]
-        public IActionResult TestUser()
-        {
-            return Ok("You are Client");
-        }
-        [Authorize(Policy = "Admin")]
-        [HttpPost("AdminAuth")]
-        public IActionResult TestAdmin()
-        {
-            return Ok("You are Admin");
-        }
-        [Authorize(Policy = "SuperAdmin")]
-        [HttpPost("SuperAdminAuth")]
-        public IActionResult TestSAdmin()
-        {
-            return Ok("You are SuperAdmin");
-        }
     }
-
 }

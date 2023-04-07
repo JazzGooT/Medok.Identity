@@ -1,5 +1,6 @@
 using FluentValidation;
 using MedokStore.Application.Common.Exceptions;
+
 using System.Net;
 using System.Text.Json;
 

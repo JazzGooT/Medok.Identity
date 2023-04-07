@@ -15,44 +15,12 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+
+///=============1=================
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
 
-builder.Services.AddSwaggerGen(c =>
-    {
-        c.SwaggerDoc("v1", new OpenApiInfo
-        {
-            Title = "MedokStore",
-            Version = "1.0.3",
-        });
-        c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-        {
-            Name = "Authorization",
-            Type = SecuritySchemeType.ApiKey,
-            Scheme = "Baerer",
-            BearerFormat = "JWT",
-            In = ParameterLocation.Header,
-            Description = "Here enter JWT token format: Bearer[token]"
-        });
-
-        c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            new string[]{}
-        }
-    });
-    });
+///=============2=================
 
 builder.Services.AddAutoMapper(config =>
 {
@@ -60,28 +28,39 @@ builder.Services.AddAutoMapper(config =>
     config.AddProfile(new AssemblyMappingProfile(typeof(IMedokStoreDbContext).Assembly));
 });
 
+///=============3=================
+
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>()
                .AddEntityFrameworkStores<MedokStoreDbContext>()
                .AddDefaultTokenProviders();
+
+///=============4=================
+
 builder.Services.Configure<IdentityOptions>(options =>
 {
     options.Password.RequireNonAlphanumeric = false;
     options.Password.RequireUppercase = false;
 });
 
+///=============5=================
+
 builder.Services.AddApplication();
+
+///=============6=================
 
 builder.Services.AddPersistence(builder.Configuration);
 
+///=============7=================
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAnyOrigin", builder =>
-    {
-        builder.AllowAnyOrigin()
-               .AllowAnyHeader()
-               .AllowAnyMethod();
-    });
+    options.AddPolicy("AllowAnyOrigin",
+        builder => builder.AllowAnyOrigin()
+                          .AllowAnyHeader()
+                          .AllowAnyMethod());
 });
+
+///=============8=================
 
 builder.Services.AddAuthentication(options =>
 {
@@ -111,6 +90,8 @@ builder.Services.AddAuthentication(options =>
         config.SaveTokens = true;
     });
 
+///=============9=================
+
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy(builder.Configuration["Roles:Client"], policyBuilder =>
@@ -130,6 +111,46 @@ builder.Services.AddAuthorization(options =>
     });
 });
 
+///============10=================
+
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "MedokStore",
+        Version = "1.0.3",
+    });
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Baerer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Here enter JWT token format: Bearer[token]"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[]{}
+        }
+    });
+});
+
+///============11=================
+
+builder.Services.AddEndpointsApiExplorer();
+
+///============End================
 
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())
@@ -143,17 +164,19 @@ using (var scope = app.Services.CreateScope())
     catch (Exception) { }
 }
 // Configure the HTTP request pipeline.
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-app.UserCustomExceptionHandler();
+
 app.UseRouting();
+app.UseCors("AllowAnyOrigin");
+app.UseCorsMiddleware();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseCors("AllowAll");
-app.UseAuthorization();
+app.UserCustomExceptionHandler();
 app.MapControllers();
 app.Run();
